@@ -1,0 +1,600 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<title>Particle Engine (Three.js)</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+	<link rel=stylesheet href="css/base.css"/>
+</head>
+<body>
+	<script src="js/three/build/three.js"></script>
+	<script src="js/three/build/three.min.js"></script>
+	<script src="js/three/build/three.module.js"></script>
+	<script src="js/Detector.js"></script>
+    <script src="js/Stats.js"></script>
+    <script src="js/OrbitControls.js"></script>
+    <script type='text/javascript' src='js/DAT.GUI.min.js'></script>
+
+	
+	
+	<script src="js/ParticleEngines-Examples2.js"></script>
+<script>
+
+
+
+
+/*
+// CameraControls.install( { THREE: THREE } );
+const clock = new THREE.Clock();
+ // Optional: Pre-fetch Draco WASM/JS module.
+// dracoLoader.preload();
+//Scene and render
+var renderer, scene, bgScene, camera, cameraControls;
+var bgMesh;
+var engine;
+//var controls;
+var mixer, mixer2,mixerCap;
+//Lights
+var spotLight, light, hemisLight;
+var spotLightHelper;
+var materiall;
+//Interface
+var gui;
+var obj;
+var stats;
+
+function init() 
+{
+	
+	//DAT GUI
+	gui = new dat.gui.GUI();
+	obj = {
+		explode: function () {
+		alert('Bang!');
+		},
+	
+		//spotlight
+		posX: -25, 
+		posY: 8, 
+		posZ: 7,
+		colorL: "#ffffff", // RGB array
+		penunmbra: 0.2,
+		helpSpot:true,
+		intSpot:1,
+		
+		intAmbien:1,
+		color0: "#443333", 
+		intHemis:1,
+		colorg: "#111122", 
+	};
+	if ( Detector.webgl )
+		renderer = new THREE.WebGLRenderer({antialias:true} );
+	else
+		renderer = new THREE.CanvasRenderer();
+	scene = new THREE.Scene();
+    // scene.fog = new THREE.Fog( 0x443333, 1, 4 );
+
+		var SCREEN_WIDTH = window.innerWidth, SCREEN_HEIGHT = window.innerHeight;
+	var VIEW_ANGLE = 45, ASPECT = SCREEN_WIDTH / SCREEN_HEIGHT, NEAR = 2, FAR = 5000;
+	camera = new THREE.PerspectiveCamera( VIEW_ANGLE, ASPECT, NEAR, FAR);
+	
+	
+	//Lights
+	// spotLight = new THREE.SpotLight( 0xffff00 );
+	light = new THREE.AmbientLight( obj.color0 ); // soft white light
+	hemisLight = new THREE.HemisphereLight( obj.color0, obj.colorg, 1 );
+	
+
+	stats = new Stats();
+}
+
+function addLights() 
+{
+	
+	//Hemisphere light
+	scene.add( hemisLight );
+	spotLight = new THREE.SpotLight();
+    spotLight.angle = Math.PI / 16;
+    spotLight.penumbra = 0.5;
+    spotLight.castShadow = true;
+    spotLight.position.set( obj.posX, obj.posY, obj.posZ );
+	scene.add( spotLight );
+	spotLightHelper = new THREE.SpotLightHelper( spotLight );
+	scene.add( spotLightHelper );
+	//fireworklight
+	var light = new THREE.PointLight(0xffffff);
+	light.position.set(0,250,0);
+	scene.add(light);
+}
+
+function main() {
+
+	
+	//Renderer
+	renderer.setClearColor(0x222222);
+	renderer.autoClearColor = false;
+    renderer.setPixelRatio( window.devicePixelRatio );
+	renderer.setSize(window.innerWidth, window.innerHeight);
+	renderer.outputEncoding = THREE.sRGBEncoding;
+	//renderer.gammaOutput = true;
+    renderer.gammaFactor = 2.2;
+   // renderer.shadowMap.enabled = true;
+//	renderer.shadowMap.type = THREE.PCFSoftShadowMap; // default THREE.PCFShadowMap
+	
+	//Camera
+	camera.position.x = 14;
+	camera.position.y = 2;
+	camera.position.z = 6;
+	camera.lookAt( 0, 0.1, 0 );
+    //controls = new OrbitControls( camera, renderer.domElement );
+
+	addLights();
+
+
+	var floorTexture = new THREE.TextureLoader().load( 'images/checkerboard.jpg' )
+	floorTexture.wrapS = floorTexture.wrapT = THREE.RepeatWrapping; 
+	floorTexture.repeat.set( 10, 10 );
+	
+	var plane = new THREE.Mesh(
+        new THREE.PlaneBufferGeometry( 30, 30 ),
+		new THREE.MeshPhongMaterial( { color: 0x999999, specular: 0x101010, map: floorTexture, side: THREE.DoubleSide} )
+		);
+    plane.rotation.x = - Math.PI / 2;
+    plane.receiveShadow = true;
+	scene.add( plane );
+
+
+
+
+	
+	
+
+	engine= new ParticleEngine();
+	engine.setValues(Examples.fountain);
+	engine.initialize(scene);
+	
+	addSkybox();
+	//addGUI();
+	addGUIFirework();
+	addGUISkybox();
+	
+}
+function addGUISkybox(){//Create animated sky
+	
+	
+	
+	var guiSLSky = gui.addFolder('Skybox');
+	guiSLSky.add(materiall, 'roughness').onChange(function (val) {
+		materiall.roughness = val;
+		materiall.update();
+	});
+	guiSLSky.add(materiall, 'metalness').onChange(function (val) {
+		spotLight.metalness = val;
+		materiall.update();
+
+	});
+	
+
+}
+function addSkybox(){//Create animated sky
+
+	//create video
+	var video= document.createElement('video');
+	video.load();
+	video.autoplay= true;
+	video.needsUpdate= true;
+	video.loop	= true;
+	//choose the video
+	video.src	= "images/Sky.mp4";
+	//video.src	= "images/Lluvia.mp4";
+	//video.src	= "images/Amanecer.mp4";
+	
+	var texture = new THREE.VideoTexture( video );
+
+    var skyGeo;
+    //add sphere
+	skyGeo=	new THREE.SphereGeometry( 300, 30, 30 );
+	
+	//adding the video to the sphere
+ 	//var material = new THREE.MeshBasicMaterial({ map: texture,});
+     materiall = new THREE.MeshStandardMaterial( {
+
+    //color: 0xffffff,
+
+    roughness: 1,
+    metalness: 1,
+    map: texture,
+
+    } );
+	var Skybox = new THREE.Mesh(skyGeo, materiall);
+	// put the video both sides of the sphere
+	Skybox.material.side = THREE.DoubleSide;
+	//Skybox.Side = THREE.DoubleSide;
+	//add sky
+	scene.add(Skybox);
+}
+function restartEngine(parameters)
+{
+	//resetCamera();
+	
+	engine.destroy(scene);
+	engine = new ParticleEngine();
+	engine.setValues( parameters );
+	engine.initialize(scene);
+}
+function addGUIFirework (){
+	 var parameters = 
+	{
+		fountain:   function() { restartEngine( Examples.fountain   ); },
+		startunnel: function() { restartEngine( Examples.startunnel ); },		
+		starfield:  function() { restartEngine( Examples.starfield  ); },		
+		fireflies:  function() { restartEngine( Examples.fireflies  ); },		
+		clouds:     function() { restartEngine( Examples.clouds     ); },		
+		smoke:      function() { restartEngine( Examples.smoke      ); },		
+		fireball:   function() { restartEngine( Examples.fireball   ); },		
+		candle:     function() { restartEngine( Examples.candle     ); },		
+		rain:       function() { restartEngine( Examples.rain       ); },		
+		snow:       function() { restartEngine( Examples.snow       ); },		
+		firework:   function() { restartEngine( Examples.firework   ); }		
+	};
+	var guiALLF= gui.addFolder('FireWorks');
+	guiALLF.add( parameters, 'fountain'   ).name("Star Fountain");
+	guiALLF.add( parameters, 'startunnel' ).name("Star Tunnel");
+	guiALLF.add( parameters, 'starfield'  ).name("Star Field");
+	guiALLF.add( parameters, 'fireflies'  ).name("Fireflies");
+	guiALLF.add( parameters, 'clouds'     ).name("Clouds");
+	guiALLF.add( parameters, 'smoke'      ).name("Smoke");
+	guiALLF.add( parameters, 'fireball'   ).name("Fireball");
+	guiALLF.add( parameters, 'candle'     ).name("Candle");
+	guiALLF.add( parameters, 'rain'       ).name("Rain");
+	guiALLF.add( parameters, 'snow'       ).name("Snow");
+	guiALLF.add( parameters, 'firework'   ).name("Firework");
+}
+function displayWindowSize(){
+	// Get width and height of the window excluding scrollbars
+	var w = document.documentElement.clientWidth;
+	var h = document.documentElement.clientHeight;
+	
+	// Display result inside a div element
+	// console.log("Width: " + w + ", " + "Height: " + h);
+	renderer.setSize(w, h);
+	// camera.fov = Math.atan(window.innerHeight / 2 / camera.position.z) * 2 * THREE.Math.RAD2DEG;
+	camera.aspect = w / h;
+	camera.updateProjectionMatrix();
+}
+
+// Attaching the event listener function to window's resize event
+window.addEventListener("resize", displayWindowSize);
+// document.addEventListener( 'keydown', onKeyDown, false );
+// document.addEventListener( 'keyup', onKeyUp, false );
+
+function animate() 
+{
+	
+/*
+	// const hasControlsUpdated = cameraControls.update( delta );
+	requestAnimationFrame(animate);
+	render();
+	renderer.render(scene, camera);
+	var dt = clock.getDelta();
+	engine.update( dt * 0.5);
+	controls.update();
+	stats.update();	
+	//controls.update();
+	
+   
+  requestAnimationFrame(animate);
+  render();
+  //renderer.render(scene, camera);
+  //controls.update();
+  //stats.update();
+ 
+  //controls.update();
+}
+function update(){ var dt = clock.getDelta();
+  engine.update( dt * 0.5);	}
+
+function render() 
+{
+	renderer.render(scene, camera);
+	/*const delta = clock.getDelta();
+	//Para la animacion
+	if ( mixer ) mixer.update( delta );
+	if ( mixer2 ) mixer2.update( delta );
+	if ( mixerCap ) mixerCap.update( delta );
+	
+	
+}
+*/
+
+var clock = new THREE.Clock();
+ // Optional: Pre-fetch Draco WASM/JS module.
+// dracoLoader.preload();
+//Scene and render
+var container, scene, camera, renderer, controls;
+var renderer, scene, bgScene, camera, cameraControls;
+var bgMesh;
+var engine;
+var controls;
+var mixer, mixer2,mixerCap;
+//Lights
+var spotLight, light, hemisLight;
+var spotLightHelper;
+var materiall;
+//Interface
+var gui;
+var obj;
+var stats;
+//Keyboard
+
+init();
+main();
+animate();
+function init() 
+{
+	
+	//DAT GUI
+	gui = new dat.gui.GUI();
+	obj = {
+		explode: function () {
+		alert('Bang!');
+		},
+	
+		//spotlight
+		posX: -25, 
+		posY: 8, 
+		posZ: 7,
+		colorL: "#ffffff", // RGB array
+		penunmbra: 0.2,
+		helpSpot:true,
+		intSpot:1,
+		
+		intAmbien:1,
+		color0: "#443333", 
+		intHemis:1,
+		colorg: "#111122", 
+	};
+	
+	if ( Detector.webgl )
+		renderer = new THREE.WebGLRenderer( {antialias:true} );
+	else
+		renderer = new THREE.CanvasRenderer();
+	scene = new THREE.Scene();
+    // scene.fog = new THREE.Fog( 0x443333, 1, 4 );
+
+		var SCREEN_WIDTH = window.innerWidth, SCREEN_HEIGHT = window.innerHeight;
+	var VIEW_ANGLE = 45, ASPECT = SCREEN_WIDTH / SCREEN_HEIGHT, NEAR = 2, FAR = 5000;
+	camera = new THREE.PerspectiveCamera( VIEW_ANGLE, ASPECT, NEAR, FAR);
+	
+	
+	//Lights
+	// spotLight = new THREE.SpotLight( 0xffff00 );
+	light = new THREE.AmbientLight( obj.color0 ); // soft white light
+	hemisLight = new THREE.HemisphereLight( obj.color0, obj.colorg, 1 );
+	
+
+	stats = new Stats();
+}
+
+function addLights() 
+{
+	
+	//Hemisphere light
+	scene.add( hemisLight );
+	spotLight = new THREE.SpotLight();
+    spotLight.angle = Math.PI / 16;
+    spotLight.penumbra = 0.5;
+    spotLight.castShadow = true;
+    spotLight.position.set( obj.posX, obj.posY, obj.posZ );
+	scene.add( spotLight );
+	spotLightHelper = new THREE.SpotLightHelper( spotLight );
+	scene.add( spotLightHelper );
+	//fireworklight
+	var light = new THREE.PointLight(0xffffff);
+	light.position.set(0,250,0);
+	scene.add(light);
+}
+
+
+
+function main() {
+
+	
+	//Renderer
+	renderer.setClearColor(0x222222);
+	renderer.autoClearColor = false;
+    renderer.setPixelRatio( window.devicePixelRatio );
+	renderer.setSize(window.innerWidth, window.innerHeight);
+	renderer.outputEncoding = THREE.sRGBEncoding;
+	//renderer.gammaOutput = true;
+    renderer.gammaFactor = 2.2;
+   // renderer.shadowMap.enabled = true;
+//	renderer.shadowMap.type = THREE.PCFSoftShadowMap; // default THREE.PCFShadowMap
+	
+	//Camera
+	camera.position.x = 14;
+	camera.position.y = 2;
+	camera.position.z = 6;
+	camera.lookAt( 0, 0.1, 0 );
+    controls = new THREE.OrbitControls( camera, renderer.domElement );
+
+	addLights();
+
+
+	//*/
+	var floorTexture = new THREE.TextureLoader().load( 'images/checkerboard.jpg' )
+	floorTexture.wrapS = floorTexture.wrapT = THREE.RepeatWrapping; 
+	floorTexture.repeat.set( 10, 10 );
+	
+	var plane = new THREE.Mesh(
+        new THREE.PlaneBufferGeometry( 30, 30 ),
+		new THREE.MeshPhongMaterial( { color: 0x999999, specular: 0x101010, map: floorTexture, side: THREE.DoubleSide} )
+		);
+    plane.rotation.x = - Math.PI / 2;
+    plane.receiveShadow = true;
+	scene.add( plane );
+
+
+
+
+	
+	
+
+	engine= new ParticleEngine();
+	engine.setValues(Examples.fountain);
+	engine.initialize(scene);
+	
+	addSkybox();
+	
+	addGUIFirework();
+	addGUISkybox();
+	
+}
+function addGUISkybox(){//Create animated sky
+	
+	
+	
+	var guiSLSky = gui.addFolder('Skybox');
+	guiSLSky.add(materiall, 'roughness').onChange(function (val) {
+		materiall.roughness = val;
+		materiall.update();
+	});
+	guiSLSky.add(materiall, 'metalness').onChange(function (val) {
+		spotLight.metalness = val;
+		materiall.update();
+
+	});
+	
+
+}
+function addSkybox(){//Create animated sky
+
+	//create video
+	var video= document.createElement('video');
+	video.load();
+	video.autoplay= true;
+	video.needsUpdate= true;
+	video.loop	= true;
+	//choose the video
+	video.src	= "images/Sky.mp4";
+	//video.src	= "images/Lluvia.mp4";
+	//video.src	= "images/Amanecer.mp4";
+	
+	var texture = new THREE.VideoTexture( video );
+
+    var skyGeo;
+    //add sphere
+	skyGeo=	new THREE.SphereGeometry( 300, 30, 30 );
+	
+	//adding the video to the sphere
+ 	//var material = new THREE.MeshBasicMaterial({ map: texture,});
+     materiall = new THREE.MeshStandardMaterial( {
+
+    //color: 0xffffff,
+
+    roughness: 1,
+    metalness: 1,
+    map: texture,
+
+    } );
+	var Skybox = new THREE.Mesh(skyGeo, materiall);
+	// put the video both sides of the sphere
+	Skybox.material.side = THREE.DoubleSide;
+	//Skybox.Side = THREE.DoubleSide;
+	//add sky
+	scene.add(Skybox);
+}
+function restartEngine(parameters)
+{
+	//resetCamera();
+	
+	engine.destroy(scene);
+	engine = new ParticleEngine();
+	engine.setValues( parameters );
+	engine.initialize(scene);
+}
+function addGUIFirework (){
+	 var parameters = 
+	{
+		fountain:   function() { restartEngine( Examples.fountain   ); },
+		startunnel: function() { restartEngine( Examples.startunnel ); },		
+		starfield:  function() { restartEngine( Examples.starfield  ); },		
+		fireflies:  function() { restartEngine( Examples.fireflies  ); },		
+		clouds:     function() { restartEngine( Examples.clouds     ); },		
+		smoke:      function() { restartEngine( Examples.smoke      ); },		
+		fireball:   function() { restartEngine( Examples.fireball   ); },		
+		candle:     function() { restartEngine( Examples.candle     ); },		
+		rain:       function() { restartEngine( Examples.rain       ); },		
+		snow:       function() { restartEngine( Examples.snow       ); },		
+		firework:   function() { restartEngine( Examples.firework   ); }		
+	};
+	var guiALLF= gui.addFolder('FireWorks');
+	guiALLF.add( parameters, 'fountain'   ).name("Star Fountain");
+	guiALLF.add( parameters, 'startunnel' ).name("Star Tunnel");
+	guiALLF.add( parameters, 'starfield'  ).name("Star Field");
+	guiALLF.add( parameters, 'fireflies'  ).name("Fireflies");
+	guiALLF.add( parameters, 'clouds'     ).name("Clouds");
+	guiALLF.add( parameters, 'smoke'      ).name("Smoke");
+	guiALLF.add( parameters, 'fireball'   ).name("Fireball");
+	guiALLF.add( parameters, 'candle'     ).name("Candle");
+	guiALLF.add( parameters, 'rain'       ).name("Rain");
+	guiALLF.add( parameters, 'snow'       ).name("Snow");
+	guiALLF.add( parameters, 'firework'   ).name("Firework");
+}
+
+function displayWindowSize(){
+	// Get width and height of the window excluding scrollbars
+	var w = document.documentElement.clientWidth;
+	var h = document.documentElement.clientHeight;
+	
+	// Display result inside a div element
+	// console.log("Width: " + w + ", " + "Height: " + h);
+	renderer.setSize(w, h);
+	// camera.fov = Math.atan(window.innerHeight / 2 / camera.position.z) * 2 * THREE.Math.RAD2DEG;
+	camera.aspect = w / h;
+	camera.updateProjectionMatrix();
+}
+
+// Attaching the event listener function to window's resize event
+window.addEventListener("resize", displayWindowSize);
+// document.addEventListener( 'keydown', onKeyDown, false );
+// document.addEventListener( 'keyup', onKeyUp, false );
+
+function animate() 
+{
+	
+/*
+	// const hasControlsUpdated = cameraControls.update( delta );
+	requestAnimationFrame(animate);
+	render();
+	renderer.render(scene, camera);
+	var dt = clock.getDelta();
+	engine.update( dt * 0.5);
+	controls.update();
+	stats.update();	
+	//controls.update();
+	
+   */
+  requestAnimationFrame(animate);
+  render();
+  update();
+  
+  
+}
+function update()
+{
+	controls.update();
+	stats.update();
+	
+  	var dt = clock.getDelta();
+  	engine.update( dt * 0.5);	}
+
+function render() 
+{
+	
+	renderer.render(scene, camera);
+}
+</script>
+
+</body>
+</html>
